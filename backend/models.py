@@ -1,3 +1,4 @@
+# backend/models.py
 from sqlalchemy import Column, Integer, String, Float, DateTime
 from datetime import datetime
 from backend.database import Base
@@ -6,6 +7,7 @@ class NewsItem(Base):
     __tablename__ = "news_items"
 
     id = Column(Integer, primary_key=True, index=True)
+    source = Column(String, default="Wire", index=True)
     headline = Column(String, unique=True, index=True)
     summary = Column(String)
     published_date = Column(String)
@@ -18,5 +20,3 @@ class NewsItem(Base):
     # Tester feedback tracking
     accuracy_upvotes = Column(Integer, default=0)
     accuracy_downvotes = Column(Integer, default=0)
-
-    

@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from pathlib import Path
 
 from backend.database import get_db, engine, Base
 from backend.models import NewsItem
@@ -14,7 +15,8 @@ Base.metadata.create_all(bind=engine)
 
 app =FastAPI(title="Market Pulse", description="Real-time Market News Analysis", version="1.0.0")
 
-templates = Jinja2Templates(directory="frontend/templates")
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "frontend" / "templates"))
 
 class FeedbackPayload(BaseModel):
     item_id: int
@@ -26,11 +28,13 @@ class AnalyzeRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def serve_dashboard(request: Request, db: Session = Depends(get_db)):
-    items = db.query(NewsItem).order_by(NewsItem.created_at.desc()).limit(25).all()
+    items = db.query(NewsItem).order_by(NewsItem.created_at.desc()).limit(100).all()
+    # Extract unique sources for filter pills
+    sources = sorted(list({item.source for item in items if item.source}))
     return templates.TemplateResponse(
         request=request, 
         name="index.html", 
-        context={"items": items}
+        context={"items": items, "sources": sources}
     )
 
 @app.post("/api/v1/sync")
@@ -44,9 +48,11 @@ def sync_wire_feed(db: Session = Depends(get_db)):
         if not exixting:
             nlp_output = analyze_story(story['headline'])
             item = NewsItem(
+                source=story.get('source', 'Financial Wire'),
                 headline=story['headline'],
                 summary=story['summary'],
                 published_date=story['published_date'],
+                source=story['source'],
                 affected_sector=nlp_output['affected_sector'],
                 sector_confidence=nlp_output['sector_confidence'],
                 impact_direction=nlp_output['impact_direction'],
@@ -63,7 +69,7 @@ def analyze_custom_text(req: AnalyzeRequest):
     """ Analyze custom text input for sector and sentiment. """
     return analyze_story(req.text)
 
-app.post("/api/v1/feedback")
+@app.post("/api/v1/feedback")
 def submit_feedback(payload: FeedbackPayload, db: Session = Depends(get_db)):
     """ Submit feedback on the accuracy of a news item. """
     item = db.query(NewsItem).filter(NewsItem.id == payload.item_id).first()
