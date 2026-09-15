@@ -11,10 +11,19 @@ class NewsItem(Base):
     headline = Column(String, unique=True, index=True)
     summary = Column(String)
     published_date = Column(String)
+    
+    # NLP Classification
     affected_sector = Column(String, index=True)
     sector_confidence = Column(Float)
     impact_direction = Column(String, index=True)  # BULLISH, BEARISH, NEUTRAL
     sentiment_confidence = Column(Float)
+    
+    # Institutional Desk Signals (NEW)
+    yield_bias = Column(String, default="Yield Neutral", index=True)
+    fx_pressure = Column(String, default="FX Neutral", index=True)
+    ecm_window = Column(String, default="Window Neutral", index=True)
+    desk_note = Column(String, default="")  # Single-sentence trader takeaway
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Tester feedback tracking

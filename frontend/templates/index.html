@@ -76,34 +76,82 @@
         <section>
             <div id="newsFeed" class="space-y-3">
                 {% for item in items %}
-                <div class="news-card bg-slate-950 border border-slate-800 rounded-lg p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition"
-                     data-source="{{ item.source }}"
-                     data-impact="{{ item.impact_direction }}"
-                     data-sector="{{ item.affected_sector }}">
-                    <div class="flex-1">
-                        <div class="flex flex-wrap items-center gap-2 mb-2">
-                            <!-- Impact Badge -->
-                            <span class="text-xs font-bold px-2 py-0.5 rounded 
-                                {% if item.impact_direction == 'BULLISH' %} bg-emerald-950 text-emerald-400 border border-emerald-800 
-                                {% elif item.impact_direction == 'BEARISH' %} bg-rose-950 text-rose-400 border border-rose-800 
-                                {% else %} bg-slate-800 text-slate-300 {% endif %}">
-                                {{ item.impact_direction }} ({{ ((item.sentiment_confidence or 0) * 100) | int }}%)
-                            </span>
-                            <!-- Source Badge -->
-                            <span class="text-xs font-semibold text-sky-400 bg-sky-950/70 border border-sky-800/80 px-2 py-0.5 rounded">
-                                {{ item.source }}
-                            </span>
-                            <!-- Sector Badge -->
-                            <span class="text-xs font-medium text-slate-400 border border-slate-800 px-2 py-0.5 rounded">
-                                {{ item.affected_sector }}
-                            </span>
-                            <span class="text-xs text-slate-500">{{ item.published_date }}</span>
-                        </div>
-                        <h3 class="text-base font-medium text-white mb-1">{{ item.headline }}</h3>
-                        {% if item.summary %}
-                        <p class="text-xs text-slate-400 line-clamp-2">{{ item.summary }}</p>
-                        {% endif %}
-                    </div>
+                <div class="news-card bg-slate-950 border border-slate-800 rounded-lg p-5 transition flex flex-col gap-3"
+     data-source="{{ item.source }}"
+     data-impact="{{ item.impact_direction }}"
+     data-sector="{{ item.affected_sector }}">
+
+    <!-- Top Metadata Badges -->
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Sentiment Badge -->
+            <span class="text-xs font-bold px-2 py-0.5 rounded 
+                {% if item.impact_direction == 'BULLISH' %} bg-emerald-950 text-emerald-400 border border-emerald-800 
+                {% elif item.impact_direction == 'BEARISH' %} bg-rose-950 text-rose-400 border border-rose-800 
+                {% else %} bg-slate-800 text-slate-300 {% endif %}">
+                {{ item.impact_direction }} ({{ ((item.sentiment_confidence or 0) * 100) | int }}%)
+            </span>
+            <!-- Source Tag -->
+            <span class="text-xs font-semibold text-sky-400 bg-sky-950/70 border border-sky-800/80 px-2 py-0.5 rounded">
+                {{ item.source }}
+            </span>
+            <!-- Sector Tag -->
+            <span class="text-xs text-slate-400 border border-slate-800 px-2 py-0.5 rounded">
+                {{ item.affected_sector }}
+            </span>
+            <span class="text-xs text-slate-500">{{ item.published_date }}</span>
+        </div>
+
+        <!-- Tester Voting -->
+        <div class="flex items-center gap-1.5 text-xs text-slate-400">
+            <button onclick="vote('{{ item.id }}', true)" class="hover:text-emerald-400 border border-slate-800 px-2 py-1 rounded transition">
+                <i class="fa-solid fa-thumbs-up"></i> {{ item.accuracy_upvotes }}
+            </button>
+            <button onclick="vote('{{ item.id }}', false)" class="hover:text-rose-400 border border-slate-800 px-2 py-1 rounded transition">
+                <i class="fa-solid fa-thumbs-down"></i> {{ item.accuracy_downvotes }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Headline & Raw Summary -->
+    <div>
+        <h3 class="text-base font-semibold text-white mb-1 leading-snug">{{ item.headline }}</h3>
+        {% if item.summary %}
+        <p class="text-xs text-slate-400 line-clamp-2">{{ item.summary }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Institutional Desk Action Strip -->
+    <div class="bg-slate-900/90 border border-slate-800/80 rounded p-3 text-xs space-y-2">
+        <div class="flex flex-wrap items-center gap-4 text-slate-300">
+            <div>
+                <span class="text-slate-500 font-medium">Yield Curve / FI:</span>
+                <span class="font-semibold {% if 'Down' in item.yield_bias %}text-emerald-400{% elif 'Up' in item.yield_bias %}text-rose-400{% else %}text-slate-400{% endif %}">
+                    {{ item.yield_bias }}
+                </span>
+            </div>
+            <div>
+                <span class="text-slate-500 font-medium">FX Desk Parity:</span>
+                <span class="font-semibold {% if 'Supportive' in item.fx_pressure %}text-emerald-400{% elif 'Depreciation' in item.fx_pressure %}text-amber-400{% else %}text-slate-400{% endif %}">
+                    {{ item.fx_pressure }}
+                </span>
+            </div>
+            <div>
+                <span class="text-slate-500 font-medium">ECM Primary Window:</span>
+                <span class="font-semibold {% if 'Favorable' in item.ecm_window %}text-emerald-400{% elif 'Constrained' in item.ecm_window %}text-rose-400{% else %}text-slate-400{% endif %}">
+                    {{ item.ecm_window }}
+                </span>
+            </div>
+        </div>
+
+        {% if item.desk_note %}
+        <div class="text-slate-400 border-t border-slate-800/60 pt-2 flex items-start gap-2">
+            <i class="fa-solid fa-briefcase text-emerald-500 mt-0.5"></i>
+            <span><strong class="text-slate-300">Desk Takeaway:</strong> {{ item.desk_note }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
 
                     <!-- Tester Validation Buttons -->
                     <div class="flex items-center gap-2 text-xs text-slate-400 flex-shrink-0">

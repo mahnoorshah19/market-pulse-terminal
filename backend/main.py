@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from pathlib import Path
+from sqlalchemy.exc import IntegrityError
 
 from backend.database import get_db, engine, Base
 from backend.models import NewsItem
@@ -39,28 +40,60 @@ def serve_dashboard(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/api/v1/sync")
 def sync_wire_feed(db: Session = Depends(get_db)):
-    """ Fetched latets wire stories and evaluates unindexed records."""
+    """Fetches latest wire stories and evaluates unindexed records with live deduplication."""
+    print("Ingesting live feeds across institutional sources...")
     raw_stories = fetch_wire_stories()
-    new_count = 0
+    print(f"Retrieved {len(raw_stories)} raw wire items. Evaluating new stories...")
 
-    for story in raw_stories:
-        exixting = db.query(NewsItem).filter(NewsItem.headline == story['headline']).first()
-        if not exixting:
+    # 1. In-memory deduplication across feeds
+    unique_stories = []
+    seen_headlines = set()
+    for s in raw_stories:
+        hl = s.get('headline', '').strip()
+        if hl and hl not in seen_headlines:
+            seen_headlines.add(hl)
+            unique_stories.append(s)
+
+    new_count = 0
+    MAX_SYNC_BATCH = 35
+
+    for story in unique_stories:
+        if new_count >= MAX_SYNC_BATCH:
+            print(f"Batch limit ({MAX_SYNC_BATCH}) reached for this sync cycle.")
+            break
+
+        # 2. Check if already recorded in SQLite
+        existing = db.query(NewsItem).filter(NewsItem.headline == story['headline']).first()
+        if not existing:
+            new_count += 1
+            print(f"[{new_count}/{MAX_SYNC_BATCH}] Classifying: {story['headline'][:50]}...")
+
             nlp_output = analyze_story(story['headline'])
             item = NewsItem(
-                source=story.get('source', 'Financial Wire'),
-                headline=story['headline'],
-                summary=story['summary'],
-                published_date=story['published_date'],
-                affected_sector=nlp_output['affected_sector'],
-                sector_confidence=nlp_output['sector_confidence'],
-                impact_direction=nlp_output['impact_direction'],
-                sentiment_confidence=nlp_output['sentiment_confidence']
-            )
-            db.add(item)
-            new_count += 1
+    source=story.get('source', 'Financial Wire'),
+    headline=story['headline'],
+    summary=story.get('summary', ''),
+    published_date=story.get('published_date', 'Recent'),
+    affected_sector=nlp_output['affected_sector'],
+    sector_confidence=nlp_output['sector_confidence'],
+    impact_direction=nlp_output['impact_direction'],
+    sentiment_confidence=nlp_output['sentiment_confidence'],
+    yield_bias=nlp_output['yield_bias'],
+    fx_pressure=nlp_output['fx_pressure'],
+    ecm_window=nlp_output['ecm_window'],
+    desk_note=nlp_output['desk_note']
+)
+            
+            # 3. Safe commit per item with rollback guard
+            try:
+                db.add(item)
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                new_count -= 1
+                continue
 
-    db.commit()
+    print(f"Sync complete. Added {new_count} fresh evaluated stories to the terminal.")
     return {"status": f"Sync completed. {new_count} new stories added."}
 
 @app.post("/api/v1/analyze-custom")
