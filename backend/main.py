@@ -30,7 +30,7 @@ def serve_dasbboard(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("index.html", {"request": request, "news_items": items})
 
 @app.post("/api/v1/sync")
-def sync_wire_feed(db: Session = Depends(get_db_)):
+def sync_wire_feed(db: Session = Depends(get_db)):
     """ Fetched latets wire stories and evaluates unindexed records."""
     raw_stories = fetch_wire_stories()
     new_count = 0
