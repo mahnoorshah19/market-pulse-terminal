@@ -25,9 +25,13 @@ class AnalyzeRequest(BaseModel):
 
 
 @app.get("/", response_class=HTMLResponse)
-def serve_dasbboard(request: Request, db: Session = Depends(get_db)):
+def serve_dashboard(request: Request, db: Session = Depends(get_db)):
     items = db.query(NewsItem).order_by(NewsItem.created_at.desc()).limit(25).all()
-    return templates.TemplateResponse("index.html", {"request": request, "news_items": items})
+    return templates.TemplateResponse(
+        request=request, 
+        name="index.html", 
+        context={"items": items}
+    )
 
 @app.post("/api/v1/sync")
 def sync_wire_feed(db: Session = Depends(get_db)):
