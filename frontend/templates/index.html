@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketPulse | Financial NLP Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+    <header class="border-b border-slate-800 bg-slate-950 px-8 py-5 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-emerald-400"></i> MarketPulse Terminal
+            </h1>
+            <p class="text-xs text-slate-400">Treasury & Macroeconomic NLP Impact Engine</p>
+        </div>
+        <button onclick="syncFeeds()" class="bg-emerald-600 hover:bg-emerald-500 text-xs px-4 py-2 rounded font-medium flex items-center gap-2 transition">
+            <i class="fa-solid fa-rotate"></i> Sync Live Feeds
+        </button>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Interactive Tester Sandbox -->
+        <section class="bg-slate-950 border border-slate-800 rounded-lg p-6 mb-8">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">Tester Playground: Test Custom Wire Headline</h2>
+            <div class="flex gap-4">
+                <input id="customText" type="text" placeholder="e.g., SBP raises benchmark policy rate by 150 basis points to combat inflation" 
+                       class="flex-1 bg-slate-900 border border-slate-700 rounded px-4 py-2 text-sm focus:outline-none focus:border-emerald-500 text-white"/>
+                <button onclick="testHeadline()" class="bg-blue-600 hover:bg-blue-500 text-sm px-5 py-2 rounded font-medium transition">
+                    Analyze Impact
+                </button>
+            </div>
+            <div id="sandboxResult" class="hidden mt-4 p-4 bg-slate-900 border border-slate-800 rounded text-sm"></div>
+        </section>
+
+        <!-- Live Intelligence Stream -->
+        <section>
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">Latest Macro & Corporate Intelligence</h2>
+            <div class="space-y-3">
+                {% for item in items %}
+                <div class="bg-slate-950 border border-slate-800 rounded-lg p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-bold px-2 py-0.5 rounded 
+                                {% if item.impact_direction == 'BULLISH' %} bg-emerald-950 text-emerald-400 border border-emerald-800 
+                                {% elif item.impact_direction == 'BEARISH' %} bg-rose-950 text-rose-400 border border-rose-800 
+                                {% else %} bg-slate-800 text-slate-300 {% endif %}">
+                                {{ item.impact_direction }} ({{ (item.sentiment_confidence * 100) | round(0) }}%)
+                            </span>
+                            <span class="text-xs font-medium text-slate-400 border border-slate-800 px-2 py-0.5 rounded">
+                                {{ item.affected_sector }}
+                            </span>
+                            <span class="text-xs text-slate-500">{{ item.published_date }}</span>
+                        </div>
+                        <h3 class="text-base font-medium text-white">{{ item.headline }}</h3>
+                    </div>
+
+                    <!-- Tester Validation Buttons -->
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <span class="hidden md:inline">Accurate?</span>
+                        <button onclick="vote('{{ item.id }}', true)" class="hover:text-emerald-400 border border-slate-800 px-2.5 py-1.5 rounded transition">
+                            <i class="fa-solid fa-thumbs-up"></i> {{ item.accuracy_upvotes }}
+                        </button>
+                        <button onclick="vote('{{ item.id }}', false)" class="hover:text-rose-400 border border-slate-800 px-2.5 py-1.5 rounded transition">
+                            <i class="fa-solid fa-thumbs-down"></i> {{ item.accuracy_downvotes }}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <script>
+        async function syncFeeds() {
+            const btn = event.target;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Syncing...';
+            await fetch('/api/v1/sync', { method: 'POST' });
+            window.location.reload();
+        }
+
+        async function testHeadline() {
+            const text = document.getElementById('customText').value;
+            if(!text) return;
+            const res = await fetch('/api/v1/analyze-custom', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await res.json();
+            const out = document.getElementById('sandboxResult');
+            out.classList.remove('hidden');
+            out.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div><span class="text-slate-400">Predicted Impact:</span> <strong class="text-white">${data.impact_direction}</strong> (${(data.sentiment_confidence*100).toFixed(0)}% conf)</div>
+                    <div><span class="text-slate-400">Mapped Sector:</span> <strong class="text-white">${data.affected_sector}</strong> (${(data.sector_confidence*100).toFixed(0)}% fit)</div>
+                </div>
+            `;
+        }
+
+        async function vote(id, isPositive) {
+            await fetch('/api/v1/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_id: id, is_positive: isPositive })
+            });
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
