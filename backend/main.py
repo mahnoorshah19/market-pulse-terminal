@@ -52,7 +52,6 @@ def sync_wire_feed(db: Session = Depends(get_db)):
                 headline=story['headline'],
                 summary=story['summary'],
                 published_date=story['published_date'],
-                source=story['source'],
                 affected_sector=nlp_output['affected_sector'],
                 sector_confidence=nlp_output['sector_confidence'],
                 impact_direction=nlp_output['impact_direction'],
