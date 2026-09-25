@@ -78,6 +78,10 @@ Frontend: Jinja2 Templates, Tailwind CSS (via CDN), FontAwesome
 
 market-pulse-terminal/
 │
+├── assets/
+│   ├── Dashboard.png
+│   └── Dashboard2.png
+│
 ├── backend/
 │   ├── __init__.py
 │   ├── database.py        # SQLAlchemy engine and session lifecycle
@@ -96,6 +100,7 @@ market-pulse-terminal/
 ├── Procfile               # Cloud deployment command (Render/Railway)
 ├── README.md
 └── requirements.txt
+
 
 ## Quickstart & Local Setup
 
