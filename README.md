@@ -105,7 +105,7 @@ market-pulse-terminal/
 git clone [https://github.com/mahnoorshah19/market-pulse-terminal.git](https://github.com/mahnoorshah19/market-pulse-terminal.git)
 cd market-pulse-terminal
 
-3. 3. Create and Activate Virtual Environment:
+3. Create and Activate Virtual Environment:
 python -m venv venv
 # On Windows PowerShell:
 .\venv\Scripts\Activate.ps1
